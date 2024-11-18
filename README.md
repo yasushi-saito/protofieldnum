@@ -1,6 +1,6 @@
 # protofieldnum
 
-Find an unused field number in a proto message
+Find the first unused field number in a proto message.
 
 Installation:
 
