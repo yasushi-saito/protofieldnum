@@ -22,6 +22,16 @@ func getNextID(m *unordered.Message) int {
 		}
 		used[n] = true
 	}
+	for _, oneof := range m.MessageBody.Oneofs {
+		for _, f := range oneof.OneofFields {
+			n, err := strconv.Atoi(f.FieldNumber)
+			if err != nil {
+				log.Fatalf("%s.%s: Could not parse field number '%s': %v",
+					m.MessageName, f.FieldName, f.FieldNumber, err)
+			}
+			used[n] = true
+		}
+	}
 	for _, r := range m.MessageBody.Reserves {
 		for _, rg := range r.Ranges {
 			// log.Printf("Range: %v", rg)
@@ -57,18 +67,7 @@ func getNextID(m *unordered.Message) int {
 	}
 }
 
-func main() {
-	flag.Usage = func() {
-		fmt.Fprintf(os.Stderr, "Usage: protofieldnum [path]\n")
-		os.Exit(1)
-	}
-
-	flag.Parse()
-	if len(flag.Args()) != 2 {
-		flag.Usage()
-	}
-
-	path := flag.Args()[1]
+func processFile(path string) {
 	fd, err := os.Open(path)
 	if err != nil {
 		log.Fatalf("Open %v: %v", path, err)
@@ -89,4 +88,20 @@ func main() {
 		fmt.Printf("%s: %v\n", m.MessageName, getNextID(m))
 	}
 	fd.Close()
+}
+
+func main() {
+	flag.Usage = func() {
+		fmt.Fprintf(os.Stderr, "Usage: protofieldnum [foo.proto bar.proto ...]\n")
+		os.Exit(1)
+	}
+
+	flag.Parse()
+	if len(flag.Args()) < 1 {
+		flag.Usage()
+	}
+
+	for _, path := range flag.Args() {
+		processFile(path)
+	}
 }
