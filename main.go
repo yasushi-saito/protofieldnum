@@ -22,6 +22,14 @@ func getNextID(m *unordered.Message) int {
 		}
 		used[n] = true
 	}
+	for _, mp := range m.MessageBody.Maps {
+		n, err := strconv.Atoi(mp.FieldNumber)
+		if err != nil {
+			log.Fatalf("%s.%s: Could not parse field number '%s': %v",
+				m.MessageName, mp.MapName, mp.FieldNumber, err)
+		}
+		used[n] = true
+	}
 	for _, oneof := range m.MessageBody.Oneofs {
 		for _, f := range oneof.OneofFields {
 			n, err := strconv.Atoi(f.FieldNumber)
