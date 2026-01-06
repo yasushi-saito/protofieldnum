@@ -1,0 +1,32 @@
+syntax = "proto3";
+
+message M0 {
+    int32 f0 = 1;
+    int32 f1 = 3;
+}
+
+message M1 {
+    int32 f0 = 1;
+    repeated int32 f1 = 3;
+}
+
+message M2 {
+    int32 f0 = 1;
+    M0 f1 = 2;
+}
+
+message M3 {
+    map<int32, int32> f0 = 1;
+}
+
+message M4 {
+    int32 f0 = 1;
+    reserved 2 to 10;
+}
+
+message M5 {
+    oneof type {
+        int32 f0 = 1;
+        string f1 = 3;
+    }
+}

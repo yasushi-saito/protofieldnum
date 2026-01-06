@@ -12,48 +12,38 @@ import (
 	"github.com/yoheimuta/go-protoparser/v4/interpret/unordered"
 )
 
+func mustParseFieldNumber(s string, fieldPath string) int {
+	n, err := strconv.ParseInt(s, 10, 32)
+	if err != nil {
+		log.Fatalf("%s: Could not parse field number '%s': %v", fieldPath, s, err)
+	}
+	return int(n)
+}
+
 func getNextID(m *unordered.Message) int {
 	used := map[int]bool{}
 	for _, f := range m.MessageBody.Fields {
-		n, err := strconv.Atoi(f.FieldNumber)
-		if err != nil {
-			log.Fatalf("%s.%s: Could not parse field number '%s': %v",
-				m.MessageName, f.FieldName, f.FieldNumber, err)
-		}
+		n := mustParseFieldNumber(f.FieldNumber, fmt.Sprintf("%s.%s", m.MessageName, f.FieldName))
 		used[n] = true
 	}
 	for _, mp := range m.MessageBody.Maps {
-		n, err := strconv.Atoi(mp.FieldNumber)
-		if err != nil {
-			log.Fatalf("%s.%s: Could not parse field number '%s': %v",
-				m.MessageName, mp.MapName, mp.FieldNumber, err)
-		}
+		n := mustParseFieldNumber(mp.FieldNumber, fmt.Sprintf("%s.%s", m.MessageName, mp.MapName))
 		used[n] = true
 	}
 	for _, oneof := range m.MessageBody.Oneofs {
 		for _, f := range oneof.OneofFields {
-			n, err := strconv.Atoi(f.FieldNumber)
-			if err != nil {
-				log.Fatalf("%s.%s: Could not parse field number '%s': %v",
-					m.MessageName, f.FieldName, f.FieldNumber, err)
-			}
+			n := mustParseFieldNumber(f.FieldNumber, fmt.Sprintf("%s.%s", m.MessageName, f.FieldName))
 			used[n] = true
 		}
 	}
 	for _, r := range m.MessageBody.Reserves {
 		for _, rg := range r.Ranges {
-			// log.Printf("Range: %v", rg)
-			start, err := strconv.Atoi(rg.Begin)
-			if err != nil {
-				log.Fatalf("%s %v: Could not parse begin reserve spec: %v",
-					m.MessageName, rg, err)
-			}
-			end := start
-			if rg.End != "" {
-				if end, err = strconv.Atoi(rg.Begin); err != nil {
-					log.Fatalf("%s %v: Could not parse end reserve spec: %v",
-						m.MessageName, rg, err)
-				}
+			start := mustParseFieldNumber(rg.Begin, fmt.Sprintf("%s(reserved) %v", m.MessageName, rg.Begin))
+			var end int
+			if rg.End == "" {
+				end = start
+			} else {
+				end = mustParseFieldNumber(rg.End, fmt.Sprintf("%s(reserved) %v", m.MessageName, rg.End))
 			}
 			if end < start {
 				log.Fatalf("%s %v: end <= start", m.MessageName, rg)
@@ -63,16 +53,13 @@ func getNextID(m *unordered.Message) int {
 			}
 		}
 	}
-	i := 1
-	for {
-		if i > 1000 {
-			log.Fatalf("%s: could not find unused field number <= 1000", m.MessageName)
-		}
+	for i := 1; i < 1000000; i++ {
 		if _, ok := used[i]; !ok {
 			return i
 		}
-		i++
 	}
+	log.Fatalf("%s: could not find unused field number <= 1000000", m.MessageName)
+	return -1
 }
 
 func processFile(path string) {
